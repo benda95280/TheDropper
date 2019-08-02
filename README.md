@@ -13,11 +13,11 @@ I've decided to share my work for the hard work of some (few) people, who are wo
 - Replaced Water by LAPIS_BLOCK (Hit = Next level)
 - Added Effect "Night Vision" when playing
 - Added an item in hand to exit the game
-- Added Message when holding the item
+- Custom Message when holding the item
 
 # To Do
-- [ ] Prevent Dropping item
-- [ ] Joining the same game, put you on the prevent level before exit
+- [X] Prevent Dropping item
+- [X] Joining the same game, put you on the prevent level before exit
 - [ ] Play sound when Wining a drop ?
 - [ ] Wait for proposal or issue :)
 

@@ -16,8 +16,12 @@ use pocketmine\event\player\PlayerMoveEvent;
 use pocketmine\block\Block;
 use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\utils\Config;
+use pocketmine\entity\Effect;
+use pocketmine\entity\EffectInstance;
 use pocketmine\math\Vector3;
 use TheDropper\teleportBack;
+use pocketmine\item\Item;
+use pocketmine\item\ItemIds;
 
 class Main extends PluginBase implements Listener {
 
@@ -44,8 +48,8 @@ class Main extends PluginBase implements Listener {
             if ($event->getCause() === EntityDamageEvent::CAUSE_FALL) {
                 if ($this->getConfig()->exists($player->getLevel()->getFolderName())) {
                     $event->setCancelled(true);
-                    $block = $player->getLevel()->getBlock(new Vector3($player->x, $player->y, $player->z));
-                    if ($block->getId() === Block::WATER) {
+                    $block = $player->getLevel()->getBlock(new Vector3($player->x, $player->y - 0.5, $player->z));
+                    if ($block->getId() === Block::LAPIS_BLOCK) {
                         $current = (int) $this->getConfig()->getNested($player->getLevel()->getFolderName() . ".players." . strtolower($player->getName()));
                         $all = count($this->getConfig()->getNested($player->getLevel()->getFolderName())) - 1;
                         $next = $current + 1;
@@ -60,7 +64,7 @@ class Main extends PluginBase implements Listener {
                             unset($players[strtolower($player->getName())]);
                             $this->getConfig()->setNested($player->getLevel()->getFolderName() . ".players", $players);
                             $this->getConfig()->save();
-                            $this->getServer()->getScheduler()->scheduleDelayedTask(new teleportBack($this, $player, $this->getServer()->getDefaultLevel()->getSafeSpawn()->getX(), $this->getServer()->getDefaultLevel()->getSafeSpawn()->getY(), $this->getServer()->getDefaultLevel()->getSafeSpawn()->getZ(), $this->getServer()->getDefaultLevel()), 20);
+                            $this->getScheduler()->scheduleDelayedTask(new teleportBack($this, $player, $this->getServer()->getDefaultLevel()->getSafeSpawn()->getX(), $this->getServer()->getDefaultLevel()->getSafeSpawn()->getY(), $this->getServer()->getDefaultLevel()->getSafeSpawn()->getZ(), $this->getServer()->getDefaultLevel()), 20);
                         }
                     } else {
                         $current = (int) $this->getConfig()->getNested($player->getLevel()->getFolderName() . ".players." . strtolower($player->getName()));
@@ -80,6 +84,7 @@ class Main extends PluginBase implements Listener {
                 $text = $sign->getText();
                 if ($text[0] === $this->prefix) {
                     $level = $text[1];
+					$this->getServer()->loadLevel($level);
                     $this->tpTo($player, 1, $this->getServer()->getLevelByName($level));
                     $this->getConfig()->setNested($level . ".players." . strtolower($player->getName()), 1);
                     $this->getConfig()->save();
@@ -93,7 +98,15 @@ class Main extends PluginBase implements Listener {
                 $this->line3 = "";
                 $this->line4 = "";
             }
-        } else {
+        }
+        if ($this->getConfig()->exists($player->getLevel()->getFolderName()) && $player->getInventory()->getItemInHand()->getId() == Item::FILLED_MAP && $player->getInventory()->getItemInHand()->getDamage() == 0) {
+				$players = $this->getConfig()->getNested($player->getLevel()->getFolderName() . ".players");
+				unset($players[strtolower($player->getName())]);
+				$this->getConfig()->setNested($player->getLevel()->getFolderName() . ".players", $players);
+				$this->getConfig()->save();
+				$this->getScheduler()->scheduleDelayedTask(new teleportBack($this, $player, $this->getServer()->getDefaultLevel()->getSafeSpawn()->getX(), $this->getServer()->getDefaultLevel()->getSafeSpawn()->getY(), $this->getServer()->getDefaultLevel()->getSafeSpawn()->getZ(), $this->getServer()->getDefaultLevel()), 20);
+			}
+		else {
             if ($this->mode != 0) {
                 $left = $this->spawnCount - $this->mode;
                 $this->getConfig()->setNested($player->getLevel()->getFolderName() . "." . $this->mode, array($block->getX(), $block->getY() + 2, $block->getZ()));
@@ -111,7 +124,7 @@ class Main extends PluginBase implements Listener {
         }
     }
 
-    public function onCommand(CommandSender $sender, Command $cmd, $label, array $args) {
+    public function onCommand(CommandSender $sender, Command $cmd, $label, array $args): bool {
         switch ($cmd->getName()) {
             case "td":
                 if (!$sender instanceof Player) {
@@ -141,6 +154,15 @@ class Main extends PluginBase implements Listener {
                         return true;
                     }
                 }
+                if (strtolower($args[0]) === "leave") {
+					if ($this->getConfig()->exists($sender->getLevel()->getFolderName())) {
+						$players = $this->getConfig()->getNested($sender->getLevel()->getFolderName() . ".players");
+						unset($players[strtolower($sender->getName())]);
+						$this->getConfig()->setNested($sender->getLevel()->getFolderName() . ".players", $players);
+						$this->getConfig()->save();
+						$this->getScheduler()->scheduleDelayedTask(new teleportBack($this, $sender, $this->getServer()->getDefaultLevel()->getSafeSpawn()->getX(), $this->getServer()->getDefaultLevel()->getSafeSpawn()->getY(), $this->getServer()->getDefaultLevel()->getSafeSpawn()->getZ(), $this->getServer()->getDefaultLevel()), 20);
+					}					
+                }
                 if (strtolower($args[0]) === "regsign") {
                     if ($this->getServer()->getLevelByName($args[1]) instanceof Level) {
                         $this->levelname = $args[1];
@@ -157,12 +179,22 @@ class Main extends PluginBase implements Listener {
         }
     }
 
-    public function tpTo(Player $player, $to, Level $level) {
+    public function tpTo(Player $player, $to, Level $level) {		
+		$player->addEffect(new EffectInstance(Effect::getEffect(16), 120*20, 1, false));
         $spawns = $this->getConfig()->getNested($level->getFolderName() . "." . $to);
         $x = $spawns[0];
         $y = $spawns[1];
         $z = $spawns[2];
-        $this->getServer()->getScheduler()->scheduleDelayedTask(new teleportBack($this, $player, $x, $y, $z, $level), 5);
+        $this->getScheduler()->scheduleDelayedTask(new teleportBack($this, $player, $x, $y, $z, $level), 5);
     }
+	public function onPlayerItemHeldEvent(PlayerItemHeldEvent $e){
+		if ($this->getConfig()->exists($player->getLevel()->getFolderName()) {
+			$i = $e->getItem();
+			$p = $e->getPlayer();
+			if($i->getId() == Item::FILLED_MAP){
+				$p->sendPopup("§l§6Quitter");
+			}
+		}
+	}
 
 }

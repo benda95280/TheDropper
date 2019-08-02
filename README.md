@@ -13,9 +13,10 @@ I've decided to share my work for the hard work of some (few) people, who are wo
 - 
 
 # To Do
-- [ ] Wait Issue ...
+- [ ] Wait Issue (Joke, i'm testing it ...)
 
 
 <br><br><br><br>
 # TheDropper
 Game plugin for Pocketmine - TheDropper
+Original link: https://forums.pocketmine.net/plugins/thedropper.1606/
